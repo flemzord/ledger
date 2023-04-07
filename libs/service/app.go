@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/numary/ledger/libs/logging"
+	"github.com/formancehq/stack/libs/go-libs/logging"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 )

@@ -10,7 +10,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/numary/ledger/libs/logging"
+	"github.com/formancehq/stack/libs/go-libs/logging"
 	natsServer "github.com/nats-io/nats-server/v2/server"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"

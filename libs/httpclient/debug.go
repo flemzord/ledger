@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/numary/ledger/libs/logging"
+	"github.com/formancehq/stack/libs/go-libs/logging"
 )
 
 type httpTransport struct {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/numary/ledger/libs/otlp"
+	"github.com/formancehq/stack/libs/go-libs/otlp"
 	"go.opentelemetry.io/contrib/propagators/b3"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

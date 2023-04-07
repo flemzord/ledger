@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/numary/ledger/libs/api"
+	"github.com/formancehq/stack/libs/go-libs/api"
 	"github.com/stretchr/testify/require"
 )
 

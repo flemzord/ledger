@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/numary/ledger/libs/logging"
-	"github.com/numary/ledger/libs/otlp/otlptraces"
+	"github.com/formancehq/stack/libs/go-libs/logging"
+	"github.com/formancehq/stack/libs/go-libs/otlp/otlptraces"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/uptrace/opentelemetry-go-extra/otellogrus"

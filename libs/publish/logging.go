@@ -2,7 +2,7 @@ package publish
 
 import (
 	"github.com/ThreeDotsLabs/watermill"
-	"github.com/numary/ledger/libs/logging"
+	"github.com/formancehq/stack/libs/go-libs/logging"
 	"go.uber.org/fx"
 )
 

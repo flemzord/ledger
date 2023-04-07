@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/numary/ledger/libs/logging"
+	"github.com/formancehq/stack/libs/go-libs/logging"
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
