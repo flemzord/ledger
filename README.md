@@ -69,8 +69,6 @@ A simple [dashboard](https://github.com/formancehq/control) is built in the ledg
 numary ui
 ```
 
-<img width="909" alt="control-screenshot" src="https://user-images.githubusercontent.com/1770991/153751534-d8bba99e-610a-4b8c-9c63-4bde6eb6f96f.png">
-
 Alternatively, you can use the dashboard by heading to [control.formance.com](https://control.formance.com) which provides a hosted version that can connect to any ledger instance.
 
 # Community
