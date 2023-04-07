@@ -13,3 +13,5 @@ sdk/sdks
 .env
 sqlstorage.test
 ledger.test
+go.work
+go.work.sum
