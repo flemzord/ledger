@@ -1,2 +1,4 @@
 ignore:
-  - "components/ledger/pkg/machine/script/parser"
+  - "docs"
+  - ".github"
+  - ".devcontainer"

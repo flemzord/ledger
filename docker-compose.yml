@@ -1,246 +1,54 @@
----
-version: '3.9'
+version: '3.8'
 volumes:
-  postgres_data:
-  opensearch_data:
+  postgres:
 services:
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16686:16686"
-      - "14268:14268"
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-      LOG_LEVEL: "debug"
-
-  gateway:
-    image: "ghcr.io/formancehq/gateway:latest"
-    network_mode: service:auth-dex
-    environment:
-      OTEL_SERVICE_NAME: "gateway"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
-      OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
-      GRPC_GO_LOG_VERBOSITY_LEVEL: "99"
-      GRPC_GO_LOG_SEVERITY_LEVEL: "info"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./config/gateway/Caddyfile:/etc/caddy/Caddyfile:ro"
-
-  auth-dex:
-    image: "ghcr.io/formancehq/auth-dex:latest"
-    restart: always
-    volumes:
-      - ./config/dex/dex-config.yaml:/etc/dex/config.docker.yaml
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8091:8081"
-      - "8080:8080"
-
-  auth:
-    image: "ghcr.io/formancehq/auth:latest"
-    restart: always
-    network_mode: service:auth-dex
-    command: serve
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DEBUG: "true"
-      CONFIG: "./config.yaml"
-      POSTGRES_URI: "host=postgres user=formance password=formance dbname=auth port=5432 sslmode=disable"
-      CAOS_OIDC_DEV: "1"
-      DELEGATED_CLIENT_ID: "gateway"
-      DELEGATED_CLIENT_SECRET: "ZXhhbXBsZS1hcHAtc2VjcmV0"
-      DELEGATED_ISSUER: "http://localhost/api/auth/dex"
-      BASE_URL: "http://localhost/api/auth"
-    volumes:
-      - ./config/auth/config.yaml:/config.yaml
-
-  control:
-    image: "ghcr.io/formancehq/control:1195d382ab72c28c8819e200e2ba0e0ea0623f8d"
-    restart: always
-    network_mode: service:gateway
-    environment:
-      API_URL: "http://localhost/api"
-      REDIRECT_URI: "http://localhost"
-      CLIENT_ID: "control"
-      CLIENT_SECRET: "mysupersecret"
-      ENCRYPTION_KEY: "mysuperencryptionkey"
-      ENCRYPTION_IV: "6f0c77c78a624022"
-
-  nats:
-    image: docker.io/bitnami/nats:2
-#    healthcheck:
-#      test: curl -s -f -k http://localhost:8222/varz >/dev/null || exit 1
-#      interval: 30s
-#      timeout: 10s
-#      retries: 5
-    ports:
-      - '4222:4222'
-      - '6222:6222'
-      - '8222:8222'
-
   postgres:
     image: "postgres:13-alpine"
-    restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ledger" ]
+      test: ["CMD-SHELL", "pg_isready -U ledger"]
       interval: 10s
       timeout: 5s
       retries: 5
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: "formance"
-      POSTGRES_PASSWORD: "formance"
-      POSTGRES_MULTIPLE_DATABASES: "auth,ledger,webhooks,payments"
-      PGDATA: "/data/postgres"
+      POSTGRES_USER: "ledger"
+      POSTGRES_PASSWORD: "ledger"
+      POSTGRES_DB: "ledger"
+      PGDATA: /data/postgres
     volumes:
-      - postgres_data:/data/postgres
-      - ./config/postgres:/docker-entrypoint-initdb.d
+      - postgres:/data/postgres
 
   ledger:
     image: "ghcr.io/formancehq/ledger:latest"
-    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "http://127.0.0.1:3068/_info", "-O", "-", "-q"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       NUMARY_STORAGE_DRIVER: "postgres"
-      NUMARY_STORAGE_POSTGRES_CONN_STRING: "postgresql://formance:formance@postgres/ledger"
+      NUMARY_STORAGE_POSTGRES_CONN_STRING: "postgresql://ledger:ledger@postgres/ledger"
       NUMARY_SERVER_HTTP_BIND_ADDRESS: "0.0.0.0:3068"
-      NUMARY_PUBLISHER_NATS_ENABLED: "true"
-      NUMARY_PUBLISHER_NATS_BROKER: "nats:4222"
-      NUMARY_PUBLISHER_TOPIC_MAPPING: "*:ledger"
 
-  wallets:
-    image: "ghcr.io/formancehq/wallets:latest"
-    restart: always
+  proxy:
+    image: caddy:2
     depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      STACK_CLIENT_ID: "wallets"
-      STACK_CLIENT_SECRET: "wallets"
-      STACK_URL: "http://localhost"
+    - ledger
+    command: caddy reverse-proxy --from :3068 --to ledger:3068
+    ports:
+    - "3068:3068"
 
-  payments:
-    image: "ghcr.io/formancehq/payments:latest"
-    restart: always
+  control:
+    image: "ghcr.io/formancehq/ledger:latest"
+    command: ui
     depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      POSTGRES_URI: "postgresql://formance:formance@postgres/payments?sslmode=disable"
-      CONFIG_ENCRYPTION_KEY: "mysuperencryptionkey"
-      PUBLISHER_NATS_ENABLED: true
-      PUBLISHER_NATS_CLIENT_ID: payments
-      PUBLISHER_NATS_URL: nats:4222
-      PUBLISHER_TOPIC_MAPPING: "*:payments"
-
-  payments-migrate:
-    image: "ghcr.io/formancehq/payments:latest"
-    command: migrate up
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      POSTGRES_URI: "postgresql://formance:formance@postgres/payments?sslmode=disable"
-
-  opensearch:
-    image: "opensearchproject/opensearch:2.2.1"
-    restart: always
-    environment:
-      discovery.type: single-node
-      plugins.security.disabled: "true"
-      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
-    healthcheck:
-      test: curl -s -f -k http://opensearch:9200/_cat/health >/dev/null || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    volumes:
-      - opensearch_data:/usr/share/opensearch/data
-
-  opensearch-dashboards:
-    image: "opensearchproject/opensearch-dashboards:2.2.1"
-    environment:
-      OPENSEARCH_HOSTS: '["http://opensearch:9200"]' # must be a string with no spaces when specified as an environment variable
-      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
-    depends_on:
-      opensearch:
+      ledger:
         condition: service_healthy
     ports:
-      - "5601:5601"
-
-  search-ingester:
-    image: "ghcr.io/formancehq/search-ingester:latest"
-    restart: always
-    depends_on:
-      opensearch:
-        condition: service_healthy
-      search:
-        condition: service_healthy
+      - "3078:3078"
     environment:
-      NATS_URL : nats:4222
-      BROKER: nats
-      OPENSEARCH_URL: "http://opensearch:9200"
-      OPENSEARCH_INDEX: "formance"
-      OPENSEARCH_TLS_ENABLED: "true"
-      OPENSEARCH_TLS_SKIP_CERT_VERIFY: "true"
-      OPENSEARCH_BASIC_AUTH_ENABLED: "false"
-
-  search:
-    image: "ghcr.io/formancehq/search:latest"
-    restart: always
-    healthcheck:
-      test: curl -s -f -k http://127.0.0.1:8080/_healthcheck >/dev/null || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    depends_on:
-      opensearch:
-        condition: service_healthy
-    environment:
-      OPEN_SEARCH_SCHEME: "http"
-      OPEN_SEARCH_SERVICE: "opensearch:9200"
-      ES_INDICES: "formance"
-
-  webhooks:
-    image: "ghcr.io/formancehq/webhooks:latest"
-    restart: always
-    healthcheck:
-      test: curl -s -f -k http://127.0.0.1:8080/_healthcheck >/dev/null || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      STORAGE_POSTGRES_CONN_STRING: "postgresql://formance:formance@postgres/webhooks?sslmode=disable"
-
-  webhooks-worker:
-    image: "ghcr.io/formancehq/webhooks:latest"
-    command: worker
-    restart: always
-    healthcheck:
-      test: curl -s -f -k http://127.0.0.1:8081/_healthcheck >/dev/null || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      STORAGE_POSTGRES_CONN_STRING: "postgresql://formance:formance@postgres/webhooks?sslmode=disable"
-      KAFKA_TOPICS: "ledger payments"
-      LOG_LEVEL: "debug"
-      PUBLISHER_NATS_CLIENT_ID: webhooks
-      PUBLISHER_NATS_ENABLED: true
-      PUBLISHER_NATS_URL: nats:4222
+      NUMARY_UI_HTTP_BIND_ADDRESS: "0.0.0.0:3078"
