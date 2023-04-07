@@ -1,7 +1,7 @@
 # Formance Ledger [![test](https://github.com/formancehq/ledger/actions/workflows/main.yml/badge.svg)](https://github.com/formancehq/ledger/actions/workflows/main.yml) [![goreportcard](https://goreportcard.com/badge/github.com/formancehq/ledger)](https://goreportcard.com/report/github.com/formancehq/ledger) [![slack](https://img.shields.io/badge/slack-formance-brightgreen.svg?logo=slack)](https://bit.ly/formance-slack) [![codecov](https://codecov.io/gh/formancehq/ledger/branch/main/graph/badge.svg?token=3PUKLWIKX3)](https://codecov.io/gh/formancehq/ledger)
 
 <p align="center">
-  <h3 align="center">Formance Ledger is now part of the Formance Stack!</h3>
+  <h3 align="center">Formance Ledger is now part of the Formance Stack!</h3> (test)
   <p align="center">Checkout the Stack <a href="https://github.com/formancehq/stack">repository</a></p>
 </p>
 
